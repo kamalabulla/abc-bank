@@ -1,8 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.30723.0
-MinimumVisualStudioVersion = 10.0.40219.1
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "abc-bank", "abc-bank\abc-bank.csproj", "{C8A5871B-EEFA-49EB-84A0-5B021D13E233}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "abc-bank-tests", "abc-bank-tests\abc-bank-tests.csproj", "{36E8C1E7-37D3-4365-91E5-4FD57A1256BD}"
