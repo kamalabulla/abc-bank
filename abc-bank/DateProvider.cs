@@ -6,20 +6,72 @@ using System.Threading.Tasks;
 
 namespace abc_bank
 {
+    #region Date Provider
+    /// <summary>
+    /// Class Date Provider
+    /// </summary>
     public class DateProvider
     {
-        private static DateProvider instance = null;
+        #region Private Fields     
+        private static readonly Lazy<DateProvider> lazy = new Lazy<DateProvider>(() => new DateProvider());
 
-        public static DateProvider getInstance()
+        private Nullable<DateTime> simulatedCurrentTime = null;
+        private readonly Object syncLock = new Object();
+        #endregion
+
+        #region Constructor
+        private DateProvider()
         {
-            if (instance == null)
-                instance = new DateProvider();
-            return instance;
+        }
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Instance
+        /// </summary>
+        public static DateProvider Instance 
+        { 
+            get
+            {
+                return lazy.Value;
+            } 
         }
 
-        public DateTime Now()
+        /// <summary>
+        /// Gets Current DateTime
+        /// </summary>
+        public DateTime Now
         {
-            return DateTime.Now;
+            get
+            {
+                // TODO Expensive, but works for now, optimize it later
+                lock (syncLock)
+                {
+                    // If there is a simulated curent time, return it. (used in unit testing)
+                    if (simulatedCurrentTime != null)
+                    {
+                        return (DateTime) simulatedCurrentTime;
+                    }
+                }
+
+                return DateTime.Now;
+            }
         }
+
+        /// <summary>
+        /// Set the simulated curren time for using testing
+        /// </summary>
+        /// <param name="simulatedCurrentTime"></param>
+        public void setSimulatedCurrentTime(Nullable<DateTime> simulatedCurrentTime)
+        {
+            lock (syncLock)
+            {
+                this.simulatedCurrentTime = simulatedCurrentTime;
+            }
+        }
+
+        #endregion
     }
+    #endregion
 }

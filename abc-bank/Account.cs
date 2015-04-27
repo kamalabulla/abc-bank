@@ -6,79 +6,179 @@ using System.Threading.Tasks;
 
 namespace abc_bank
 {
-    public class Account
+    #region Account
+    /// <summary>
+    /// Abstract account class
+    /// </summary>
+    public abstract class Account : IAccount
     {
+        #region Private Fields
+        private string id;
+        private string type;
+        private double currentBalance = 0;
+        private List<Transaction> transactions;
+        private readonly Object transactionLock = new Object();
+        #endregion
 
-        public const int CHECKING = 0;
-        public const int SAVINGS = 1;
-        public const int MAXI_SAVINGS = 2;
-
-        private readonly int accountType;
-        public List<Transaction> transactions;
-
-        public Account(int accountType) 
+        #region Constructor
+        /// <summary>
+        /// Account Constructor
+        /// </summary>
+        /// <param name="accountId">account Id</param>
+        /// <param name="acntType">account type</param>
+        /// <param name="currentbal">amount to be deposited</param>
+        public Account(String accountId, String acntType, double currentbal) : this(accountId, acntType, currentbal, new List<Transaction>())
         {
-            this.accountType = accountType;
-            this.transactions = new List<Transaction>();
         }
 
-        public void Deposit(double amount) 
+        /// <summary>
+        /// Account  Full Constructor
+        /// </summary>
+        /// <param name="accountId">account Id</param>
+        /// <param name="acntType">account type</param>
+        /// <param name="currentbal">amount to be deposited</param>
+        /// <param name="transactions">all the transactions</param>
+        public Account(String accountId, String acntType, double currentbal, List<Transaction> transactions)
         {
-            if (amount <= 0) {
+            id = accountId;
+            type = acntType;
+            currentBalance = currentbal;
+            this.transactions = transactions;
+        }
+
+        #endregion
+
+        #region Properties
+        /// <summary>
+        /// Account Id
+        /// </summary>
+        public string Id
+        {
+            get
+            {
+                return id;
+            }
+        }
+
+        /// <summary>
+        /// Accunt Type
+        /// </summary>
+        public string AccountType
+        {
+            get
+            {
+                return type;
+            }
+        }
+
+        /// <summary>
+        /// Give transacion lock to sub classes so that they can use transactions in a thread-safe manner
+        /// </summary>
+        protected Object TransactionLock 
+        {
+            get
+            { 
+                return transactionLock;
+            }
+        }
+
+        /// <summary>
+        /// Give transacions access to sub classes so that they can use transactions directly
+        /// </summary>
+        protected List<Transaction> Transactions 
+        {
+            get 
+            { 
+                return transactions;
+            } 
+        }
+
+        #endregion
+
+        #region Public Methods
+        /// <summary>
+        ///Deposit amount in Account 
+        /// </summary>
+        /// <param name="amount">amount to be deposited</param>
+        public void Deposit(double amount)
+        {
+            if (amount <= 0)
+            {
                 throw new ArgumentException("amount must be greater than zero");
-            } else {
-                transactions.Add(new Transaction(amount));
+            }
+            else
+            {
+                // Update bothe current balance and transactions in a single trasaction lock
+                lock (transactionLock)
+                {
+                    currentBalance += amount;
+                    transactions.Add(new Transaction(amount, currentBalance,TransactionType.Deposit));
+                }
             }
         }
 
-        public void Withdraw(double amount) 
+        /// <summary>
+        /// Get all transactions
+        /// </summary>
+        /// <returns>List of Transaction</returns>
+        public List<Transaction> GetAllTransactions()
         {
-            if (amount <= 0) {
+            // TODO use thread safe enumerable read only collections from .net framework 4.5
+            // I do not have the latest framework in my personal dev environment
+            lock (transactionLock)
+            {
+                // For now, create a new list so that user can not modify transactions
+                return new List<Transaction>(transactions);
+            }
+        }
+
+        /// <summary>
+        /// Get current balance
+        /// </summary>
+        /// <returns>current balance in the account</returns>
+        public double GetCurrentBalance()
+        {
+            lock (transactionLock)
+            {
+                return currentBalance;
+            }
+        }
+
+        /// <summary>
+        /// Withdraws amount from the account
+        /// </summary>
+        /// <param name="amount">amount to withdraw</param>
+        public void Withdraw(double amount)
+        {
+            if (amount <= 0)
+            {
                 throw new ArgumentException("amount must be greater than zero");
-            } else {
-                transactions.Add(new Transaction(-amount));
+            }
+
+            lock (transactionLock)
+            {
+                // Make sure to have sufficient funds before withdrawl
+                if (amount > currentBalance)
+                {
+                    throw new ArgumentException(string.Format("insufficient funds: current balance is: {0}", currentBalance));
+                }
+                else
+                {
+                    currentBalance -= amount;
+                    transactions.Add(new Transaction(-amount, currentBalance, TransactionType.WithDraw));
+                }
             }
         }
 
-        public double InterestEarned() 
-        {
-            double amount = sumTransactions();
-            switch(accountType){
-                case SAVINGS:
-                    if (amount <= 1000)
-                        return amount * 0.001;
-                    else
-                        return 1 + (amount-1000) * 0.002;
-    //            case SUPER_SAVINGS:
-    //                if (amount <= 4000)
-    //                    return 20;
-                case MAXI_SAVINGS:
-                    if (amount <= 1000)
-                        return amount * 0.02;
-                    if (amount <= 2000)
-                        return 20 + (amount-1000) * 0.05;
-                    return 70 + (amount-2000) * 0.1;
-                default:
-                    return amount * 0.001;
-            }
-        }
-
-        public double sumTransactions() {
-           return CheckIfTransactionsExist(true);
-        }
-
-        private double CheckIfTransactionsExist(bool checkAll) 
-        {
-            double amount = 0.0;
-            foreach (Transaction t in transactions)
-                amount += t.amount;
-            return amount;
-        }
-
-        public int GetAccountType() 
-        {
-            return accountType;
-        }
-
+        /// <summary>
+        /// interest earned - to be implemented by repsective accounts based on the interest rates
+        /// </summary>
+        /// <returns></returns>
+        public abstract double InterestEarned();
+        #endregion
     }
+    #endregion
 }
+
+
+
